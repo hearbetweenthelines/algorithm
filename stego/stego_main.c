@@ -13,6 +13,9 @@
 #include <math.h>
 #include <string.h>
 #include "../utils/wavtool.h"
+#include "../compress/compress.h"
+#include "../crypto/crypto.h"
+#include "lsb.h"
 #include "stego_main.h"
 
 typedef int bool;
@@ -25,7 +28,7 @@ char *audioFilename;
 char *outputFilename;
 int pin = -1;
 
-int parseCmd(int argc, char *argv[])
+int parseCmd(int argc, char const *argv[])
 {
     for (int i = 1; i < argc; i++)
     {
@@ -69,9 +72,54 @@ void printUsage()
     printDecodeUsage();
 }
 
-int encodeCycle() {}
+int getFileSize(char const* filename)
+{
+	FILE *file = fopen(filename, "r");
+	fseek(file, 0, SEEK_END);
+	int size = (int)ftell(file);
+	fclose(file);
+	return size;
+}
 
-int main(int argc, char *argv[])
+int openMsgFile(char const* filename, int length, const char* buffer)
+{
+	FILE *file = fopen(filename, "r");
+	if (file == NULL)
+		return -1;
+	
+	fread(buffer, sizeof(char), length, file);
+	fclose(file);
+	return 0;
+}
+
+double** openAudioFile(char const* filename, WAVE_INFO *wave_info)
+{
+	int r = open_wave(filename, wave_info);
+	if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
+		return NULL;
+	return wave_read(wave_info, 0);
+}
+
+int encodeCycle() 
+{
+	int size = getFileSize(msgFilename);
+	char *msg = (char *)malloc(size);
+	if (openMsgFile(msgFilename, size, msg) == -1)
+		return MSG_OPEN_FAIL;
+	WAVE_INFO wave_info;
+	double** audio = openAudioFile(audioFilename, &wave_info);
+
+	msg = compress(msg);
+	msg = crypto(msg);
+
+	lsb_stego(msg, audio);	
+
+	free(msg);
+	free(audio);
+}
+int decodeCycle() {}
+
+int main(int argc, char const *argv[])
 {
     switch (parseCmd(argc, argv))
     {
@@ -87,5 +135,9 @@ int main(int argc, char *argv[])
         printDecodeUsage();
         return -1;
     }
+    if (isEncode)
+        encodeCycle();
+    else
+        decodeCycle();
     return 0;
 }
