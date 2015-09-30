@@ -1,0 +1,7 @@
+enum
+{
+    OK,
+    UNDEFINED_CMD,
+    WRONG_FORMAT_ENCODE,
+    WRONG_FORMAT_DECODE,
+};
