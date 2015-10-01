@@ -2,4 +2,6 @@
 test
 test.c
 a.out
-t.txt
+*.txt
+*.txt~
+*.wav

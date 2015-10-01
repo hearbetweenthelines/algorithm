@@ -72,50 +72,67 @@ void printUsage()
     printDecodeUsage();
 }
 
-int getFileSize(char const* filename)
+int getFileSize(char const *filename)
 {
-	FILE *file = fopen(filename, "r");
-	fseek(file, 0, SEEK_END);
-	int size = (int)ftell(file);
-	fclose(file);
-	return size;
+    FILE *file = fopen(filename, "r");
+    fseek(file, 0, SEEK_END);
+    int size = (int)ftell(file);
+    fclose(file);
+    return size;
 }
 
-int openMsgFile(char const* filename, int length, const char* buffer)
+int openMsgFile(char const *filename, int length, const char *buffer)
 {
-	FILE *file = fopen(filename, "r");
-	if (file == NULL)
-		return -1;
-	
-	fread(buffer, sizeof(char), length, file);
-	fclose(file);
-	return 0;
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+        return -1;
+
+    fread(buffer, sizeof(char), length, file);
+    fclose(file);
+    return 0;
 }
 
-double** openAudioFile(char const* filename, WAVE_INFO *wave_info)
+double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 {
-	int r = open_wave(filename, wave_info);
-	if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
-		return NULL;
-	return wave_read(wave_info, 0);
+    int r = open_wave(filename, wave_info);
+    printf("%d\n", r);
+    if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
+        return NULL;
+    return wave_read(wave_info, 0);
 }
 
-int encodeCycle() 
+int encodeCycle()
 {
-	int size = getFileSize(msgFilename);
-	char *msg = (char *)malloc(size);
-	if (openMsgFile(msgFilename, size, msg) == -1)
-		return MSG_OPEN_FAIL;
-	WAVE_INFO wave_info;
-	double** audio = openAudioFile(audioFilename, &wave_info);
+    int size  = getFileSize(msgFilename);
+    char *msg = (char *)malloc(size);
+    if (openMsgFile(msgFilename, size, msg) == -1)
+        return MSG_OPEN_FAIL;
+    printf("%s\n", *msg);
+    printf("dsads\n");
+    WAVE_INFO wave_info;
+    printf("%s\n", audioFilename);
+    double **audio = openAudioFile(audioFilename, &wave_info);
+    printf("%f\n", audio[0][0]);
+    // double **audio = (double **)malloc(1 * sizeof(double *));
+    // audio[0] = (double *)malloc(12 * 4 * sizeof(double));
+    // for (int i = 0; i < 12 * 4; i++)
+    //     audio[0][i]    = 0;
+    // wave_info.bitDepth = 24;
+    // wave_info.dataSize = 12 * 4 * 3;
+    // wave_info.channels = 1;
+    // wave_info.filename = "test.wav";
 
-	msg = compress(msg);
-	msg = crypto(msg);
+    msg = compress(msg);
+    if (msg == NULL)
+        return COMPRESS_FAIL;
+    msg = crypto(msg);
+    if (msg == NULL)
+        return ENCRYPTION_FAIL;
 
-	lsb_stego(msg, audio);	
+    lsb_stego(msg, size, audio, &wave_info, outputFilename);
 
-	free(msg);
-	free(audio);
+    free(msg);
+    // free(audio);
 }
 int decodeCycle() {}
 
