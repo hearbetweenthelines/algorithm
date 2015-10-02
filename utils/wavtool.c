@@ -75,12 +75,14 @@ double **wave_read(WAVE_INFO *wave_info, unsigned int blanksec)
     double **result = (double **)malloc(sizeof(double *) * wave_info->channels);
     if (!result)
         return NULL;
+
     for (int chnl = 0; chnl < wave_info->channels; chnl++)
     {
         double *chnldata =
             (double *)malloc(sizeof(double) * (chnlFrameCount + blanksec * wave_info->sampleRate));
         if (!chnldata)
             return NULL;
+
         memset(chnldata + chnlFrameCount, 0, blanksec * wave_info->sampleRate);
         result[chnl] = chnldata;
     }

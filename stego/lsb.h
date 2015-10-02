@@ -8,7 +8,7 @@
 
 enum
 {
-    MSG_TOO_LONG
+    MSG_TOO_LONG = 1
 };
 
 int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_info,

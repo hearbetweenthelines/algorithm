@@ -1,7 +1,7 @@
 .DS_Store
 test
 test.c
-a.out
+*.out
 *.txt
 *.txt~
 *.wav

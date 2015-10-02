@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* compress(char const* data);
+char *compress(char *data);
 
 #endif

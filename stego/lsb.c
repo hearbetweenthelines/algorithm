@@ -23,7 +23,6 @@ int simple_write_wave(char const *filename, char *memdata, WAVE_INFO const *wave
     short shortdata = 1;
     if (wave_info->bitDepth == 32)
         shortdata = 3;
-    printf("GOOD\n");
     // RIFF WAVE Chunk
     memcpy(buf, chardata, 4);
     memcpy(buf + 4, &intdata, 4);
@@ -50,15 +49,7 @@ int simple_write_wave(char const *filename, char *memdata, WAVE_INFO const *wave
     memcpy(buf + 40, &(wave_info->dataSize), 4);
     char *start = buf + 44;
 
-    for (int i = 0; i < 44; i++)
-    {
-        printf("%02hhX ", *(buf + i));
-        if (i % 16 == 15)
-            printf("\n");
-    }
-    printf("\n");
-
-    memcpy(start, memdata, frameCount);
+    memcpy(start, memdata, frameCount * dataWidth);
     fwrite(buf, sizeof(char), wave_info->dataSize, file);
     fclose(file);
     free(buf);
@@ -76,25 +67,23 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
     int frameCount  = wave_info->dataSize / dataWidth;
     double zeroline = pow(2.0, wave_info->bitDepth - 1);
 
-    for (int i = 0; i < msglen; i++)
-        printf("%02hhX ", msg[i]);
-    printf("\n");
+    // for (int i = 0; i < msglen; i++)
+    //     printf("%02hhX ", msg[i]);
+    // printf("\n");
 
     char *idata = (char *)malloc(frameCount * dataWidth);
-    printf("%d\n", frameCount);
-    printf("%d\n", wave_info->channels);
-    printf("%f\n", zeroline);
     for (int i = 0; i < frameCount; i++)
     {
         int sample = (int)(data[i % wave_info->channels][i / wave_info->channels] * zeroline);
-        printf("SAMPLE\n");
-        sample &= ~0x3;
-        sample |= (msg[i / 4] >> ((i % 4) * 2)) & 0x3;
-        printf("%d\n", sample);
+
+        if (msglen * 4 <= i)
+        {
+            sample &= ~0x3;
+            sample |= (msg[i / 4] >> ((i % 4) * 2)) & 0x3;
+        }
         memcpy(idata + i * dataWidth, &sample, dataWidth);
-        for (int j = 0; j < dataWidth; j++)
-            printf("%02hhX", idata[i * dataWidth + j]);
-        printf("%d\n", i);
+        // for (int j = 0; j < dataWidth; j++)
+        // printf("%02hhX", idata[i * dataWidth + j]);
     }
 
     simple_write_wave(filename, idata, wave_info);

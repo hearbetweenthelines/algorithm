@@ -1,6 +1,6 @@
 #include "crypto.h"
 
-char *crypto(char const *data)
+char *crypto(char *data)
 {
     printf("Encrypted\n");
     return data;

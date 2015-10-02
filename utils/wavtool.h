@@ -19,6 +19,7 @@
 
 enum
 {
+    SUCCESS,
     FILE_OPEN_ERROR,
     RIFF_NOT_MATCH,
     WAVE_NOT_MATCH,

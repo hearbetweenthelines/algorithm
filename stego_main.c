@@ -12,10 +12,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "../utils/wavtool.h"
-#include "../compress/compress.h"
-#include "../crypto/crypto.h"
-#include "lsb.h"
+#include "utils/wavtool.h"
+#include "compress/compress.h"
+#include "crypto/crypto.h"
+#include "stego/stego.h"
 #include "stego_main.h"
 
 typedef int bool;
@@ -95,7 +95,6 @@ int openMsgFile(char const *filename, int length, const char *buffer)
 double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 {
     int r = open_wave(filename, wave_info);
-    printf("%d\n", r);
     if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
         return NULL;
     return wave_read(wave_info, 0);
@@ -107,20 +106,9 @@ int encodeCycle()
     char *msg = (char *)malloc(size);
     if (openMsgFile(msgFilename, size, msg) == -1)
         return MSG_OPEN_FAIL;
-    printf("%s\n", *msg);
-    printf("dsads\n");
     WAVE_INFO wave_info;
-    printf("%s\n", audioFilename);
+
     double **audio = openAudioFile(audioFilename, &wave_info);
-    printf("%f\n", audio[0][0]);
-    // double **audio = (double **)malloc(1 * sizeof(double *));
-    // audio[0] = (double *)malloc(12 * 4 * sizeof(double));
-    // for (int i = 0; i < 12 * 4; i++)
-    //     audio[0][i]    = 0;
-    // wave_info.bitDepth = 24;
-    // wave_info.dataSize = 12 * 4 * 3;
-    // wave_info.channels = 1;
-    // wave_info.filename = "test.wav";
 
     msg = compress(msg);
     if (msg == NULL)
@@ -129,7 +117,7 @@ int encodeCycle()
     if (msg == NULL)
         return ENCRYPTION_FAIL;
 
-    lsb_stego(msg, size, audio, &wave_info, outputFilename);
+    stego(msg, size, audio, &wave_info, outputFilename);
 
     free(msg);
     // free(audio);

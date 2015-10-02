@@ -4,6 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char* crypto(char const* data);
+char *crypto(char *data);
 
 #endif
