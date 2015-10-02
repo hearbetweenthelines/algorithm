@@ -67,10 +67,6 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
     int frameCount  = wave_info->dataSize / dataWidth;
     double zeroline = pow(2.0, wave_info->bitDepth - 1);
 
-    // for (int i = 0; i < msglen; i++)
-    //     printf("%02hhX ", msg[i]);
-    // printf("\n");
-
     char *idata = (char *)malloc(frameCount * dataWidth);
     for (int i = 0; i < frameCount; i++)
     {
@@ -82,15 +78,19 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
             sample |= (msg[i / 4] >> ((i % 4) * 2)) & 0x3;
         }
         memcpy(idata + i * dataWidth, &sample, dataWidth);
-        // for (int j = 0; j < dataWidth; j++)
-        // printf("%02hhX", idata[i * dataWidth + j]);
     }
 
     simple_write_wave(filename, idata, wave_info);
 
     free(idata);
-    // printf("Success here\n");
-    // printf("%d\n", msglen);
-    // printf("%d\n", wave_info->dataSize / wave_info->channels / (wave_info->bitDepth / 8));
     return 0;
+}
+
+char * lsb_destego(char const* audiopath)
+{
+    WAVE_INFO wave_info;
+    int r = open_wave(audiopath, &wave_info);
+    if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
+        return NULL;
+    return null;
 }

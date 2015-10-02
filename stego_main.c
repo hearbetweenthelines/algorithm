@@ -26,6 +26,7 @@ bool isEncode = true;
 char *msgFilename;
 char *audioFilename;
 char *outputFilename;
+char const* header = "HBL";
 int pin = -1;
 
 int parseCmd(int argc, char const *argv[])
@@ -75,19 +76,21 @@ void printUsage()
 int getFileSize(char const *filename)
 {
     FILE *file = fopen(filename, "r");
+    if (file == NULL)
+        return -1;
     fseek(file, 0, SEEK_END);
     int size = (int)ftell(file);
     fclose(file);
     return size;
 }
 
-int openMsgFile(char const *filename, int length, const char *buffer)
+int openMsgFile(char const *filename, int length, const char *buffer, int offset)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
         return -1;
 
-    fread(buffer, sizeof(char), length, file);
+    fread(buffer + offset, sizeof(char), length, file);
     fclose(file);
     return 0;
 }
@@ -103,9 +106,46 @@ double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 int encodeCycle()
 {
     int size  = getFileSize(msgFilename);
-    char *msg = (char *)malloc(size);
-    if (openMsgFile(msgFilename, size, msg) == -1)
-        return MSG_OPEN_FAIL;
+    int filenameLength = strlen(msgFilename);
+    char* msg;
+    if (size != -1)
+    {
+        msg = (char *)malloc(size + filenameLength + sizeof(int) * 2 + 3);
+        if (openMsgFile(msgFilename, size, msg, filenameLength + sizeof(int) * 2 + 3) == -1)
+            return MSG_OPEN_FAIL;
+        memcpy(msg, header, 3);
+        memcpy(msg + 3, &filenameLength, sizeof(int));
+        memcpy(msg + 3 + sizeof(int), msgFilename, filenameLength);
+        memcpy(msg + 3 + sizeof(int) + filenameLength, &size, sizeof(int));
+    }
+    else
+    {
+        msg = (char*)malloc(strlen(msgFilename) + sizeof(int) * 2 + 3);
+        memcpy(msg, header, 3);
+        memcpy(msg + 3, &filenameLength, sizeof(int));
+        memcpy(msg + 3 + sizeof(int), msgFilename, filenameLength);
+        int zero = 0;
+        memcpy(msg + 3 + sizeof(int) + filenameLength, &zero, sizeof(int));
+    }
+
+    /*int temp1 = 0; 
+    memcpy(&temp1,msg, sizeof(int));
+    printf("%d\n", temp1);
+    for (int i = 0; i < temp1; i++)
+        printf("%c", msg[i + sizeof(int)]);
+    printf("\n");
+    int temp2 = 0;
+    memcpy(&temp2, msg + sizeof(int) + temp1, sizeof(int));
+    printf("%d\n", temp2);
+    for (int i = 0; i < temp2; i++)
+    {
+        printf("%c", msg[i + 2 * sizeof(int) + temp1]);
+    }
+    printf("\n");*/
+
+    //return 0;
+
+
     WAVE_INFO wave_info;
 
     double **audio = openAudioFile(audioFilename, &wave_info);
@@ -122,7 +162,10 @@ int encodeCycle()
     free(msg);
     // free(audio);
 }
-int decodeCycle() {}
+int decodeCycle()
+{
+    char* msgFlow = destego(audioFilename);
+}
 
 int main(int argc, char const *argv[])
 {
