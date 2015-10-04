@@ -274,7 +274,7 @@ int decodeCycle()
         char *bitstream = (char *)malloc(msgLength);
         memcpy(bitstream, msg + sizeof(int) * 2 + nameOrMsgLength, msgLength);
         int filenameindex = 0;
-        for (filenameindex = nameOrMsgLength - 1; filenameindex >= 0; filenameindex--)
+        for (filenameindex = nameOrMsgLength - 1; filenameindex > 0; filenameindex--)
             if (filenameOrMsg[filenameindex] == '/')
             {
                 filenameindex++;
@@ -298,7 +298,7 @@ int decodeCycle()
         }
         fclose(file);
         free(bitstream);
-        printf("A file is extracted.\n");
+        printf("A file(%s) is extracted.\n", filenameOrMsg + filenameindex);
     }
 
     free(msg);
