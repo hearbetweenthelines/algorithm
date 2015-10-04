@@ -26,9 +26,12 @@ bool isEncode = true;
 char *msgFilename;
 char *audioFilename;
 char *outputFilename;
-char const *header = "HBL";
-int pin            = -1;
+int pin = -1;
 
+
+/*
+ * These functions prints help message on the screen.
+ */
 void printEncodeUsage()
 {
     printf("Usage: hbl -e pin -m [File/Message]ToHide -a Audio -o OutputFile\n");
@@ -40,6 +43,9 @@ void printUsage()
     printDecodeUsage();
 }
 
+/*
+ * Extract commands from arguments that is passed to the main function.
+ */
 int parseCmd(int argc, char const *argv[])
 {
     for (int i = 1; i < argc; i++)
@@ -87,7 +93,10 @@ int parseCmd(int argc, char const *argv[])
     return 0;
 }
 
-
+/*
+ * Get and return the length in bytes how long an assigned file is.
+ * Return 0 if the file does not exist or failed to open.
+ */
 int getFileSize(char const *filename)
 {
     FILE *file = fopen(filename, "r");
@@ -99,6 +108,9 @@ int getFileSize(char const *filename)
     return size;
 }
 
+/*
+ * Open the assigned file and read all the bytes into 'buffer'.
+ */
 int openMsgFile(char const *filename, int length, const char *buffer, int offset)
 {
     FILE *file = fopen(filename, "r");
@@ -110,6 +122,11 @@ int openMsgFile(char const *filename, int length, const char *buffer, int offset
     return 0;
 }
 
+/*
+ * Open audio file and return a pointer.
+ * Return value can be viewed as an array of pointers which point to
+ * the starting sample in each channel.
+ */
 double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 {
     int r = open_wave(filename, wave_info);
@@ -118,6 +135,15 @@ double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
     return wave_read(wave_info, 0);
 }
 
+/*
+ * Encode process
+ *
+ * Open message/file
+ * Open audio file
+ * Compress message/file
+ * Encrypt message/file
+ * Stego message/file into audio
+ */
 int encodeCycle()
 {
     int size           = getFileSize(msgFilename);
@@ -126,14 +152,14 @@ int encodeCycle()
 
     printf("Encode cycle started\n");
 
-    // HBL header
-    // memcpy(msg, header, 3);
     // 4 bytes - filename string length / 4 bytes - Message length
     memcpy(msg, &filenameLength, sizeof(int));
     // undefinite - filename itself / indefinite - message itself
     memcpy(msg + sizeof(int), msgFilename, filenameLength);
     // 4 bytes - length of message / 4 byte - no message file indicator
     memcpy(msg + sizeof(int) + filenameLength, &size, sizeof(int));
+
+    // If a file is assigned to stego, open it.
     if (size != 0)
         if (openMsgFile(msgFilename, size, msg, filenameLength + sizeof(int) * 2) == -1)
         {
@@ -157,7 +183,7 @@ int encodeCycle()
     printf("Audio file opened.\n");
 
     int msglen = size + filenameLength + sizeof(int) * 2;
-    int temp   = msglen;
+    int temp   = msglen; // Used to compute compression ratio.
     msglen = compress(msg, msglen);
     if (msg == NULL)
     {
@@ -190,6 +216,17 @@ int encodeCycle()
 
     return 0;
 }
+
+/*
+ * Decode process
+ *
+ * Open audio file
+ * Destego to get a bitstream
+ * Decrypt bitstream
+ * Decompress bitstream
+ * Identify it is a message or a file
+ * Message: Print to the screen; File: Write to the disk
+ */
 int decodeCycle()
 {
     printf("Decode cycle started.\n");

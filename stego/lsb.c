@@ -1,6 +1,10 @@
 #include "lsb.h"
 #include <math.h>
 
+/*
+ * Write 'memdata' into 'filename' with format assigned by 'wave_info'
+ * Note that the bitDepth is constrained to 24-bit
+ */
 int simple_write_wave(char const *filename, char *memdata, WAVE_INFO const *wave_info)
 {
     FILE *file = fopen(filename, "w");
@@ -62,10 +66,15 @@ int simple_write_wave(char const *filename, char *memdata, WAVE_INFO const *wave
     return 0;
 }
 
+/*
+ * Stego function
+ * Use the last two bits of each sample(3 bytes) to hide the info
+ * Note that each byte in the message needs 4 samples to save(12 bytes)
+ */
 int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_info,
               char const *filename)
 {
-    if (msglen * 4 > wave_info->dataSize)
+    if (msglen * 4 * 3 > wave_info->dataSize)
     {
         printf("Message/file is too long.\n");
         return -1;
@@ -75,12 +84,13 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
     int frameCount  = wave_info->dataSize / dataWidth;
     double zeroline = pow(2.0, wave_info->bitDepth - 1);
 
+    // Header that contains an indicator and the message length
     char *header = (char *)malloc(3 + sizeof(int));
     header[0]    = 'H';
     header[1]    = 'B';
-    header[2]    = 'L';
-
+    header[2] = 'L';
     memcpy(header + 3, &msglen, sizeof(int));
+
     char *temp = (char *)malloc(3 + sizeof(int) + msglen);
     memcpy(temp, header, 7);
     memcpy(temp + 7, msg, msglen);

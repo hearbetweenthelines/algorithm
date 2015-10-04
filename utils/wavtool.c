@@ -4,6 +4,9 @@
 #define OUTPUT_OPEN_DEBUG 0
 #define OUTPUT_WRITE_DEBUG 0
 
+/*
+ * Open the wav file and extract the info into assigned WAVE_INFO
+ */
 int open_wave(const char *filename, WAVE_INFO *wave_info)
 {
     wave_info->filename = filename;
@@ -65,6 +68,11 @@ int open_wave(const char *filename, WAVE_INFO *wave_info)
     return 0;
 }
 
+/*
+ * Read the audio file and return a pointer.
+ * Return value can be viewed as an array of pointers which point to
+ * the starting sample in each channel.
+ */
 double **wave_read(WAVE_INFO *wave_info, unsigned int blanksec)
 {
     double zeroline    = pow(2.0, wave_info->bitDepth - 1);
@@ -139,6 +147,9 @@ double **wave_read(WAVE_INFO *wave_info, unsigned int blanksec)
     return result;
 }
 
+/*
+ * Write 'data' into 'filename' with format assigned by 'wave_info'
+ */
 int wave_write(const char *filename, const WAVE_INFO *wave_info, double **data)
 {
     FILE *file = fopen(filename, "w");
