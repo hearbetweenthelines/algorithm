@@ -1,6 +1,9 @@
 #include "lsb.h"
 #include <math.h>
 
+int utiBit = 2;
+int MASK   = 1;
+
 /*
  * Write 'memdata' into 'filename' with format assigned by 'wave_info'
  * Note that the bitDepth is constrained to 24-bit
@@ -74,7 +77,9 @@ int simple_write_wave(char const *filename, char *memdata, WAVE_INFO const *wave
 int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_info,
               char const *filename)
 {
-    if (msglen * 4 * 3 > wave_info->dataSize)
+    for (int i = 0; i < utiBit - 1; i++)
+        MASK = (MASK << 1) | 1;
+    if (msglen * (8 / utiBit) * 3 > wave_info->dataSize)
     {
         printf("Message/file is too long.\n");
         return -1;
@@ -88,7 +93,8 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
     char *header = (char *)malloc(3 + sizeof(int));
     header[0]    = 'H';
     header[1]    = 'B';
-    header[2] = 'L';
+    header[2]    = 'L';
+
     memcpy(header + 3, &msglen, sizeof(int));
 
     char *temp = (char *)malloc(3 + sizeof(int) + msglen);
@@ -101,10 +107,10 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
     {
         int sample = (int)(data[i % wave_info->channels][i / wave_info->channels] * zeroline);
 
-        if (msglen * 4 * 3 >= i)
+        if (msglen * (8 / utiBit) * 3 >= i)
         {
-            sample &= ~0x3;
-            sample |= ((temp[i / 4] >> ((i % 4) * 2)) & 0x3);
+            sample &= ~MASK;
+            sample |= ((temp[i / (8 / utiBit)] >> ((i % (8 / utiBit)) * utiBit)) & MASK);
         }
         memcpy(idata + i * dataWidth, &sample, dataWidth);
     }
@@ -122,6 +128,8 @@ int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_
 
 char *lsb_destego(char const *audiopath)
 {
+    for (int i = 0; i < utiBit - 1; i++)
+        MASK = (MASK << 1) | 1;
     WAVE_INFO wave_info;
     int r = open_wave(audiopath, &wave_info);
     if (r == FILE_OPEN_ERROR || r == WAVE_NOT_MATCH || r == FMT_NOT_MATCH || r == DATA_NOT_FOUND)
@@ -146,8 +154,8 @@ char *lsb_destego(char const *audiopath)
     char *check = (char *)malloc(4);
     memset(check, 0, 4);
     for (int i = 0; i < 3; i++)
-        for (int j = 3; j >= 0; j--)
-            check[i] = (check[i] << 2) | (buf[4 * 3 * i + 3 * j] & 0x3);
+        for (int j = (8 / utiBit) - 1; j >= 0; j--)
+            check[i] = (check[i] << utiBit) | (buf[(8 / utiBit) * 3 * i + 3 * j] & MASK);
 
     if (strcmp(check, "HBL") != 0)
     {
@@ -155,9 +163,10 @@ char *lsb_destego(char const *audiopath)
         return NULL;
     }
     for (int i = 0; i < 4; i++)
-        for (int j = 3; j >= 0; j--)
-            check[i] = (check[i] << 2) |
-                       (buf[4 * 3 * i + 3 * j + 36] & 0x3); // 36 is added to skip HBL bytes
+        for (int j = (8 / utiBit) - 1; j >= 0; j--)
+            check[i] =
+                (check[i] << utiBit) | (buf[(8 / utiBit) * 3 * i + 3 * j + 3 * 3 * (8 / utiBit)] &
+                                        MASK); // 36 is added to skip HBL bytes
     int len = 0;
     memcpy(&len, check, 4);
 
@@ -165,9 +174,10 @@ char *lsb_destego(char const *audiopath)
     memset(result, 0, len);
     memcpy(result, &len, sizeof(int));
     for (int i = 0; i < len; i++)
-        for (int j = 3; j >= 0; j--)
+        for (int j = (8 / utiBit) - 1; j >= 0; j--)
             result[i + sizeof(int)] =
-                (result[i + sizeof(int)] << 2) | (buf[4 * 3 * i + 3 * j + 36 + 48] & 0x3);
+                (result[i + sizeof(int)] << utiBit) |
+                (buf[(8 / utiBit) * 3 * i + 3 * j + 3 * 7 * (8 / utiBit)] & MASK);
 
     free(buf);
     free(check);
