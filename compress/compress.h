@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *compress(char *data);
+int compress(char *data, int len);
+int decompress(char *data, int len);
 
 #endif

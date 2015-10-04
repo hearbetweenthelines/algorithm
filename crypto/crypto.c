@@ -1,7 +1,5 @@
 #include "crypto.h"
 
-char *crypto(char *data)
-{
-    printf("Encrypted\n");
-    return data;
-}
+int encrypt(char *data, int len, void *pin) { return len; }
+
+int decrypt(char *data, int len, void *pin) { return len; }

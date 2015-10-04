@@ -26,8 +26,19 @@ bool isEncode = true;
 char *msgFilename;
 char *audioFilename;
 char *outputFilename;
-char const* header = "HBL";
-int pin = -1;
+char const *header = "HBL";
+int pin            = -1;
+
+void printEncodeUsage()
+{
+    printf("Usage: hbl -e pin -m [File/Message]ToHide -a Audio -o OutputFile\n");
+}
+void printDecodeUsage() { printf("Usage: hbl -d pin -a Audio\n"); }
+void printUsage()
+{
+    printEncodeUsage();
+    printDecodeUsage();
+}
 
 int parseCmd(int argc, char const *argv[])
 {
@@ -50,34 +61,38 @@ int parseCmd(int argc, char const *argv[])
         else if (strcmp(argv[i], "-o") == 0)
             outputFilename = argv[++i];
         else
-            return UNDEFINED_CMD;
+        {
+            printf("Unknown command.\n");
+            return -1;
+        }
     }
     if (isEncode)
     {
-        if (msgFilename == NULL || audioFilename == NULL || outputFilename == NULL || pin == -1)
-            return WRONG_FORMAT_ENCODE;
+        if (msgFilename == NULL || audioFilename == NULL || outputFilename == NULL)
+        {
+            printf("Missing arguments.\n");
+            printEncodeUsage();
+            return -1;
+        }
     }
     else
     {
-        if (audioFilename == NULL || outputFilename == NULL || pin == -1)
-            return WRONG_FORMAT_DECODE;
+        if (audioFilename == NULL)
+        {
+            printf("Missing arguments\n");
+            printDecodeUsage();
+            return -1;
+        }
     }
-    return OK;
+    return 0;
 }
 
-void printEncodeUsage() { printf("Usage: hbl -e pin -m FileToHide -a UsedAudio -o OutputFile\n"); }
-void printDecodeUsage() { printf("Usage: hbl -d pin -a UsedAudio -o OutputFile\n"); }
-void printUsage()
-{
-    printEncodeUsage();
-    printDecodeUsage();
-}
 
 int getFileSize(char const *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
-        return -1;
+        return 0;
     fseek(file, 0, SEEK_END);
     int size = (int)ftell(file);
     fclose(file);
@@ -105,87 +120,185 @@ double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 
 int encodeCycle()
 {
-    int size  = getFileSize(msgFilename);
+    int size           = getFileSize(msgFilename);
     int filenameLength = strlen(msgFilename);
-    char* msg;
-    if (size != -1)
-    {
-        msg = (char *)malloc(size + filenameLength + sizeof(int) * 2 + 3);
-        if (openMsgFile(msgFilename, size, msg, filenameLength + sizeof(int) * 2 + 3) == -1)
-            return MSG_OPEN_FAIL;
-        memcpy(msg, header, 3);
-        memcpy(msg + 3, &filenameLength, sizeof(int));
-        memcpy(msg + 3 + sizeof(int), msgFilename, filenameLength);
-        memcpy(msg + 3 + sizeof(int) + filenameLength, &size, sizeof(int));
-    }
-    else
-    {
-        msg = (char*)malloc(strlen(msgFilename) + sizeof(int) * 2 + 3);
-        memcpy(msg, header, 3);
-        memcpy(msg + 3, &filenameLength, sizeof(int));
-        memcpy(msg + 3 + sizeof(int), msgFilename, filenameLength);
-        int zero = 0;
-        memcpy(msg + 3 + sizeof(int) + filenameLength, &zero, sizeof(int));
-    }
+    char *msg          = (char *)malloc(size + filenameLength + sizeof(int) * 2);
 
-    /*int temp1 = 0; 
-    memcpy(&temp1,msg, sizeof(int));
-    printf("%d\n", temp1);
-    for (int i = 0; i < temp1; i++)
-        printf("%c", msg[i + sizeof(int)]);
-    printf("\n");
-    int temp2 = 0;
-    memcpy(&temp2, msg + sizeof(int) + temp1, sizeof(int));
-    printf("%d\n", temp2);
-    for (int i = 0; i < temp2; i++)
-    {
-        printf("%c", msg[i + 2 * sizeof(int) + temp1]);
-    }
-    printf("\n");*/
+    printf("Encode cycle started\n");
 
-    //return 0;
+    // HBL header
+    // memcpy(msg, header, 3);
+    // 4 bytes - filename string length / 4 bytes - Message length
+    memcpy(msg, &filenameLength, sizeof(int));
+    // undefinite - filename itself / indefinite - message itself
+    memcpy(msg + sizeof(int), msgFilename, filenameLength);
+    // 4 bytes - length of message / 4 byte - no message file indicator
+    memcpy(msg + sizeof(int) + filenameLength, &size, sizeof(int));
+    if (size != 0)
+        if (openMsgFile(msgFilename, size, msg, filenameLength + sizeof(int) * 2) == -1)
+        {
+            printf("Failed to open the assigned file.\n");
+            free(msg);
+            return -1;
+        }
 
+    printf("Message/File prepared.\n");
 
     WAVE_INFO wave_info;
 
     double **audio = openAudioFile(audioFilename, &wave_info);
+    if (audio == NULL)
+    {
+        printf("Failed to open the assigned audio file.\n");
+        free(msg);
+        return -1;
+    }
 
-    msg = compress(msg);
-    if (msg == NULL)
-        return COMPRESS_FAIL;
-    msg = crypto(msg);
-    if (msg == NULL)
-        return ENCRYPTION_FAIL;
+    printf("Audio file opened.\n");
 
-    stego(msg, size, audio, &wave_info, outputFilename);
+    int msglen = size + filenameLength + sizeof(int) * 2;
+    int temp   = msglen;
+    msglen = compress(msg, msglen);
+    if (msg == NULL)
+    {
+        printf("Failed to compress the message/file.\n");
+        free(audio);
+        return -1;
+    }
+    printf("Compression finished. (ratio: %d%%)\n", msglen * 100 / temp);
+
+    msglen = encrypt(msg, msglen, &pin);
+    if (msg == NULL)
+    {
+        printf("Failed to encrypt the message/file.\n");
+        free(audio);
+        return -1;
+    }
+    printf("Encryption finished.\n");
+
+    if (stego(msg, msglen, audio, &wave_info, outputFilename) == -1)
+    {
+        printf("Stego failed.\n");
+        free(msg);
+        free(audio);
+        return -1;
+    }
+    printf("Stego finished.\n");
 
     free(msg);
-    // free(audio);
+    free(audio);
+
+    return 0;
 }
 int decodeCycle()
 {
-    char* msgFlow = destego(audioFilename);
+    printf("Decode cycle started.\n");
+    char *msgFlow = destego(audioFilename);
+    if (msgFlow == NULL)
+    {
+        return -1;
+    }
+
+    int len = 0;
+    memcpy(&len, msgFlow, sizeof(int));
+    char *msg = (char *)malloc(len);
+    memcpy(msg, msgFlow + sizeof(int), len);
+    free(msgFlow);
+
+    len = decrypt(msg, len, &pin);
+    if (msg == NULL)
+    {
+        printf("Failed to decrypt the message/file.\n");
+        return -1;
+    }
+    printf("Decryption finished.\n");
+
+    len = decompress(msg, len);
+    if (msg == NULL)
+    {
+        printf("Failed to decompress the message/file.\n");
+        return -1;
+    }
+    printf("Decompression finished.\n");
+
+    int nameOrMsgLength = 0;
+    memcpy(&nameOrMsgLength, msg, sizeof(int));
+    char *filenameOrMsg = (char *)malloc(nameOrMsgLength);
+    memcpy(filenameOrMsg, msg + sizeof(int), nameOrMsgLength);
+    int msgLength = 0;
+    memcpy(&msgLength, msg + sizeof(int) + nameOrMsgLength, sizeof(int));
+
+    if (msgLength == 0)
+    {
+        printf("\nThe message contained in the file is: \n%s\n\n", filenameOrMsg);
+    }
+    else
+    {
+        char *bitstream = (char *)malloc(msgLength);
+        memcpy(bitstream, msg + sizeof(int) * 2 + nameOrMsgLength, msgLength);
+        int filenameindex = 0;
+        for (filenameindex = nameOrMsgLength - 1; filenameindex >= 0; filenameindex--)
+            if (filenameOrMsg[filenameindex] == '/')
+            {
+                filenameindex++;
+                break;
+            }
+        FILE *file = fopen(filenameOrMsg + filenameindex, "w");
+        if (!file)
+        {
+            printf("Failed to open the file for writing.\n");
+            free(msg);
+            free(filenameOrMsg);
+            return -1;
+        }
+        if (fwrite(bitstream, sizeof(char), msgLength, file) != msgLength)
+        {
+            printf("Failed to write the file.\n");
+            free(msg);
+            free(filenameOrMsg);
+            fclose(file);
+            return -1;
+        }
+        fclose(file);
+        free(bitstream);
+        printf("A file is extracted.\n");
+    }
+
+    free(msg);
+    free(filenameOrMsg);
+    return 0;
 }
 
 int main(int argc, char const *argv[])
 {
-    switch (parseCmd(argc, argv))
+    if (parseCmd(argc, argv) == -1)
     {
-    case OK:
-        break;
-    case UNDEFINED_CMD:
-        printUsage();
-        return -1;
-    case WRONG_FORMAT_ENCODE:
-        printEncodeUsage();
-        return -1;
-    case WRONG_FORMAT_DECODE:
-        printDecodeUsage();
+        printf("Parse command failed.\n");
         return -1;
     }
     if (isEncode)
-        encodeCycle();
+    {
+        if (encodeCycle() == -1)
+        {
+            printf("Encode failed.\n");
+            return -1;
+        }
+        else
+        {
+            printf("Encode cycle finished successfully.\n");
+        }
+    }
     else
-        decodeCycle();
+    {
+        if (decodeCycle() == -1)
+        {
+            printf("Decode failed.\n");
+            return -1;
+        }
+        else
+        {
+            printf("Decode cycle finished successfully\n");
+        }
+    }
     return 0;
 }

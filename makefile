@@ -1,0 +1,2 @@
+a.out : stego_main.c stego/stego.c stego/lsb.c utils/wavtool.c compress/compress.c crypto/crypto.c
+	gcc stego_main.c stego/stego.c stego/lsb.c utils/wavtool.c compress/compress.c crypto/crypto.c -std=c99 -lm

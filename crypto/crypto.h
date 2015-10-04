@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-char *crypto(char *data);
+int encrypt(char *data, int len, void *pin);
+int decrypt(char *data, int len, void *pin);
 
 #endif

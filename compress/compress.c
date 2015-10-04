@@ -1,7 +1,5 @@
 #include "compress.h"
 
-char *compress(char *data)
-{
-    printf("Compressed\n");
-    return data;
-}
+int compress(char *data, int len) { return len; }
+
+int decompress(char *data, int len) { return len; }
