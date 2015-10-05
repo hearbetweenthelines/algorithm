@@ -136,6 +136,27 @@ double **openAudioFile(char const *filename, WAVE_INFO *wave_info)
 }
 
 /*
+ * Readjust the sample data so that they are in [-1,1] range
+ */
+void normalize(double **data, const WAVE_INFO *wave_info)
+{
+    if (wave_info->bitDepth == 32)
+    {
+        double max = 0;
+        for (int i = 0; i < wave_info->dataSize / (wave_info->bitDepth / 8); i++)
+        {
+            if (data[i % wave_info->channels][i / wave_info->channels] > max)
+                max = data[i % wave_info->channels][i / wave_info->channels];
+        }
+        if (max < 1)
+            return;
+        else
+            for (int i = 0; i < wave_info->dataSize / (wave_info->bitDepth / 8); i++)
+                data[i % wave_info->channels][i / wave_info->channels] /= max;
+    }
+}
+
+/*
  * Encode process
  *
  * Open message/file
@@ -181,6 +202,8 @@ int encodeCycle()
     }
 
     printf("Audio file opened.\n");
+
+    normalize(audio, &wave_info);
 
     int msglen = size + filenameLength + sizeof(int) * 2;
     int temp   = msglen; // Used to compute compression ratio.

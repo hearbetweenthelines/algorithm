@@ -11,8 +11,8 @@ enum
     MSG_TOO_LONG = 1
 };
 
-int lsb_stego(char const *msg, int msglen, double **data, const WAVE_INFO *wave_info,
+int lsb_stego(char const *msg, int msglen, double **data, WAVE_INFO *wave_info,
               char const *filename);
-char * lsb_destego(char const* audiopath);
+char *lsb_destego(char const *audiopath);
 
 #endif
