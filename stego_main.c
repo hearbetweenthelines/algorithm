@@ -207,7 +207,7 @@ int encodeCycle()
 
     int msglen = size + filenameLength + sizeof(int) * 2;
     int temp   = msglen; // Used to compute compression ratio.
-    msglen = compress(msg, msglen);
+    msglen = compress(&msg, msglen);
     if (msg == NULL)
     {
         printf("Failed to compress the message/file.\n");
@@ -216,7 +216,7 @@ int encodeCycle()
     }
     printf("Compression finished. (ratio: %d%%)\n", msglen * 100 / temp);
 
-    msglen = encrypt(msg, msglen, &pin);
+    msglen = encrypt(&msg, msglen, &pin);
     if (msg == NULL)
     {
         printf("Failed to encrypt the message/file.\n");
@@ -265,7 +265,7 @@ int decodeCycle()
     memcpy(msg, msgFlow + sizeof(int), len);
     free(msgFlow);
 
-    len = decrypt(msg, len, &pin);
+    len = decrypt(&msg, len, &pin);
     if (msg == NULL)
     {
         printf("Failed to decrypt the message/file.\n");
@@ -273,7 +273,7 @@ int decodeCycle()
     }
     printf("Decryption finished.\n");
 
-    len = decompress(msg, len);
+    len = decompress(&msg, len);
     if (msg == NULL)
     {
         printf("Failed to decompress the message/file.\n");
