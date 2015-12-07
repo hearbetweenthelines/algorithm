@@ -36,7 +36,7 @@ int compress_encrpty(char *pin)
     //for (int i = 0; i < len; i++)
     //    printf("%02hhX ", buffer[i]);
     //printf("\n");
-    len = encrypt(&buffer, len, pin, strlen(pin));
+    len = m_encrypt(&buffer, len, pin, strlen(pin));
     if (buffer == NULL)
         return 0;
     printf("Encryption finished.\n");
@@ -89,7 +89,7 @@ int performStego(char* filename)
             if (((tempbuf[i + 2] & 0xF0) >> 4) < 15 && ((tempbuf[i + 2] & 12) >> 2) < 4 &&
                 tempbuf[i + 4] == 0)
             {
-            	tempbuf[i + 2] = tempbuf[i + 2] & 0xFE | getBit(count++);
+            	tempbuf[i + 2] = (tempbuf[i + 2] & 0xFE) | getBit(count++);
             	//if (count < 16)
             		//printf("%d %02hhX%02hhX %02hhX%02hhX %02hhX%02hhX\n", tempbuf[i + 2] & 1,
                     //   tempbuf[i], tempbuf[i + 1], tempbuf[i + 2], tempbuf[i + 3], tempbuf[i + 4],
@@ -107,7 +107,7 @@ int performStego(char* filename)
 	fwrite(tempbuf, 1, size, file);
 	fclose(file);
 
-        return count;
+    return count;
 }
 
 /*int main(int argc, char const *argv[])

@@ -271,7 +271,7 @@ int encodeCycle()
         free(audio);
         return -1;
     }
-    msglen = encrypt(&msg, msglen, pin, strlen(pin));
+    msglen = m_encrypt(&msg, msglen, pin, strlen(pin));
     // printf("%d\n", msglen);
     if (msg == NULL)
     {
