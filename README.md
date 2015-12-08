@@ -11,3 +11,10 @@ C programs that provide the backend support of this project.
 ## Tools
 * [ffmpeg](https://ffmpeg.org/ffmpeg.html) is a command line toolbox to
   manipulate, convert and stream multimedia content.
+
+## Sample Usage
+Encoding using wavstego `./wavstego -e <pin> -m <message_file> -a <input_audio> -o <output_file>`
+Decoding using wavstego `./wavstego -d <pin> -a <input_audio>`
+
+Encoding using mp3stego `./mp3stego -b <bitrate> -e <message_file> -p <pin> <input_audio> <output_file>`
+Decoding using mp3stego `./mp3stego -p <pin> <input_audio>`
