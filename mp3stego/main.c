@@ -39,13 +39,13 @@
 char *infname, *outfname;
 FILE *infile, *outfile;
 char *msgfile;
+char *pin;
+int quiet            = 0;
+int _verbose         = 0;
+int stereo           = STEREO;
+int force_mono       = 0;
 int isencode         = 0;
 int frames_processed = 0;
-char *pin;
-int quiet      = 0;
-int _verbose   = 0;
-int stereo     = STEREO;
-int force_mono = 0;
 
 
 int verbose() { return _verbose; }
@@ -194,6 +194,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    // Branching the functions of the program
     if (isencode)
     {
         quiet = quiet || !strcmp(outfname, "-");
@@ -326,6 +327,7 @@ int main(int argc, char **argv)
         fread(buffer, sizeof(char), len2, file);
         fclose(file);
 
+	// Trying to extract the length of embeded information
         int count  = 0;
         short anum = 0;
         short bnum = 0;
@@ -337,9 +339,6 @@ int main(int argc, char **argv)
                 if (((buffer[i + 2] & 0xF0) >> 4) < 15 && ((buffer[i + 2] & 12) >> 2) < 4 &&
                     buffer[i + 4] == 0)
                 {
-                    //printf("%d %02hhX%02hhX %02hhX%02hhX %02hhX%02hhX\n", buffer[i + 2] & 1,
-                    //       buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3], buffer[i + 4],
-                    //       buffer[i + 5]);
                     if (count < 8)
                         anum = anum << 1 | (buffer[i + 2] & 1);
                     else
@@ -354,6 +353,7 @@ int main(int argc, char **argv)
         len = bnum << 8 | anum;
         //printf("%d\n", len);
 
+	// Trying to extract information
         char *msg = (char *)malloc(len);
         count = 0;
         for (i = i + 2; i < len2 && count != len * 8; i += 2)
@@ -363,9 +363,6 @@ int main(int argc, char **argv)
                 if (((buffer[i + 2] & 0xF0) >> 4) < 15 && ((buffer[i + 2] & 12) >> 2) < 4 &&
                     buffer[i + 4] == 0)
                 {
-                    //printf("%d %d %02hhX%02hhX %02hhX%02hhX %02hhX%02hhX\n",count, buffer[i + 2] & 1,
-                    //       buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3], buffer[i + 4],
-                    //       buffer[i + 5]);
                     msg[count / 8] = msg[count / 8] << 1 | (buffer[i + 2] & 1);
                     count++;
                 }
@@ -374,36 +371,33 @@ int main(int argc, char **argv)
         if (count < len * 8)
             printf("Message is not complete.\n");
 
-        //for (int i = 0; i < len; i++)
-        //    printf("%02hhX ", msg[i]);
-        //printf("\n");
         len = decrypt(&msg, len, pin, strlen(pin));
-	    if (msg == NULL)
-	    {
-	        printf("Failed to decrypt the message/file.\n");
-	        return -1;
-	    }
-	    printf("Decryption finished.\n");
+        if (msg == NULL)
+        {
+            printf("Failed to decrypt the message/file.\n");
+            return -1;
+        }
+        printf("Decryption finished.\n");
 
-	    len = m_decompress(&msg, len);
-	    if (msg == NULL || len <= 0)
-	    {
-	        printf("Failed to decompress the message/file.\n");
-	        return -1;
-	    }
-	    printf("Decompression finished.\n");
+        len = m_decompress(&msg, len);
+        if (msg == NULL || len <= 0)
+        {
+            printf("Failed to decompress the message/file.\n");
+            return -1;
+        }
+        printf("Decompression finished.\n");
 
-	    //printf("%s\n", msg);
-	    int fd;
-	    char template[] = "d-XXXXXX";
-	    fd = mkstemp(template);
-	    printf("Message has been written to %s\n", template);
-	    close(fd);
-	    FILE* file2 = fopen(template,"wb");
-	    fwrite(msg,1,len,file2);
-	    fclose(file2);
-	    free(msg);
-	    free(buffer);
+	// Save the extracted information into a file
+        int fd;
+        char template[] = "d-XXXXXX";
+        fd = mkstemp(template);
+        printf("Message has been written to %s\n", template);
+        close(fd);
+        FILE* file2 = fopen(template,"wb");
+        fwrite(msg,1,len,file2);
+        fclose(file2);
+        free(msg);
+        free(buffer);
 
     }
 
