@@ -7,6 +7,7 @@ C programs that provide the backend support of this project.
 ## Libraries
 * `libsndfile` C library for reading and writing sound files containing sampled audio data.
 * `zlib` A massively spiffy yet delicately unobtrusive compression library.
+* `tiny-AES128-C` A small and portable C implementation of the AES128 ECB and CBC encryption algorithms
 
 ## Tools
 * [ffmpeg](https://github.com/FFmpeg/FFmpeg) is a command line toolbox to
