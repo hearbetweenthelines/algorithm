@@ -205,16 +205,15 @@ int main(int argc, char **argv)
         if (!wave_open(infname, &wave, &config, quiet))
         {
         	int fd;
-		    fd = mkstemp(tempTemp);
-		    close(fd);
+		fd = mkstemp(tempTemp);
+		close(fd);
         	remove(tempTemp);
-		    tempname = (char*)malloc(13);
-		    memcpy(tempname, tempTemp, 9);
-		    tempname[9]='.';
-		    tempname[10]='w';
-		    tempname[11]='a';
-		    tempname[12]='v';
-		    printf("test\n");
+		tempname = (char*)malloc(13);
+		memcpy(tempname, tempTemp, 9);
+		tempname[9]='.';
+		tempname[10]='w';
+		tempname[11]='a';
+		tempname[12]='v';
 	        pid_t pid = fork();
 	        if (pid == 0)
 	        { /* child process */
