@@ -9,7 +9,7 @@ C programs that provide the backend support of this project.
 * `zlib` A massively spiffy yet delicately unobtrusive compression library.
 
 ## Tools
-* [ffmpeg](https://ffmpeg.org/ffmpeg.html) is a command line toolbox to
+* [ffmpeg](https://github.com/FFmpeg/FFmpeg) is a command line toolbox to
   manipulate, convert and stream multimedia content.
 
 ## Sample Usage
