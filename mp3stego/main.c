@@ -71,11 +71,6 @@ static void print_usage()
     printf("Options:\n");
     printf(" -h            this help message\n");
     printf(" -b <bitrate>  set the bitrate [8-320], default 128kbit\n");
-    printf(" -m            force encoder to operate in mono\n");
-    printf(" -c            set copyright flag, default off\n");
-    printf(" -j            encode in joint stereo (stereo data only)\n");
-    printf(" -d            encode in dual-channel (stereo data only)\n");
-    printf(" -q            quiet mode\n");
     printf(" -v            verbose mode\n");
     printf(" -e            txt file to stego\n");
     printf(" -p            pin (max 16 characters)\n");
@@ -99,6 +94,12 @@ static int parse_command(int argc, char **argv, shine_config_t *config)
         case 'b':
             config->mpeg.bitr = atoi(argv[++i]);
             break;
+
+        case 'v':
+            _verbose = 1;
+            quiet    = 0;
+            break;
+
         case 'p':
             pin = argv[++i];
             break;
@@ -106,32 +107,6 @@ static int parse_command(int argc, char **argv, shine_config_t *config)
         case 'e':
             msgfile  = argv[++i];
             isencode = 1;
-            break;
-
-        case 'm':
-            force_mono = 1;
-            break;
-
-        case 'j':
-            stereo = JOINT_STEREO;
-            break;
-
-        case 'd':
-            stereo = DUAL_CHANNEL;
-            break;
-
-        case 'c':
-            config->mpeg.copyright = 1;
-            break;
-
-        case 'q':
-            quiet    = 1;
-            _verbose = 0;
-            break;
-
-        case 'v':
-            _verbose = 1;
-            quiet    = 0;
             break;
 
         case 'h':
@@ -205,36 +180,35 @@ int main(int argc, char **argv)
         /* Open the input file and fill the config shine_wave_t header */
         if (!wave_open(infname, &wave, &config, quiet))
         {
-        	int fd;
-		fd = mkstemp(tempTemp);
-		close(fd);
-        	remove(tempTemp);
-		tempname = (char*)malloc(13);
-		memcpy(tempname, tempTemp, 9);
-		tempname[9]='.';
-		tempname[10]='w';
-		tempname[11]='a';
-		tempname[12]='v';
-	        pid_t pid = fork();
-	        if (pid == 0)
-	        { /* child process */
-	            static char *argv[] = {"ffmpeg",    "-i",       NULL, "-acodec",
-	                                   "pcm_s16le", NULL, NULL};
-	            argv[2] = infname;
-	            argv[5] = tempname;
-	            execv("ffmpeg", argv);
-	            exit(127); /* only if execv fails */
-	        }
-	        else
-	        {                       /* pid!=0; parent process */
-	            waitpid(pid, 0, 0); /* wait for child to exit */
-	        }
-	        infname = tempname;
+            int fd;
+            fd = mkstemp(tempTemp);
+            close(fd);
+            remove(tempTemp);
+            tempname = (char *)malloc(13);
+            memcpy(tempname, tempTemp, 9);
+            tempname[9]  = '.';
+            tempname[10] = 'w';
+            tempname[11] = 'a';
+            tempname[12] = 'v';
+            pid_t pid = fork();
+            if (pid == 0)
+            { /* child process */
+                static char *argv[] = {"ffmpeg", "-i", NULL, "-acodec", "pcm_s16le", NULL, NULL};
+                argv[2]             = infname;
+                argv[5] = tempname;
+                execv("ffmpeg", argv);
+                exit(127); /* only if execv fails */
+            }
+            else
+            {                       /* pid!=0; parent process */
+                waitpid(pid, 0, 0); /* wait for child to exit */
+            }
+            infname = tempname;
 
-        	if (!wave_open(infname, &wave, &config, quiet))
-        	{
-        		remove(tempname);
-            	error("Could not open WAVE file");
+            if (!wave_open(infname, &wave, &config, quiet))
+            {
+                remove(tempname);
+                error("Could not open WAVE file");
             }
         }
 
@@ -327,7 +301,7 @@ int main(int argc, char **argv)
         fread(buffer, sizeof(char), len2, file);
         fclose(file);
 
-	// Trying to extract the length of embeded information
+        // Trying to extract the length of embeded information
         int count  = 0;
         short anum = 0;
         short bnum = 0;
@@ -350,10 +324,10 @@ int main(int argc, char **argv)
         if (count != 16)
             printf("Message length error.\n");
         short len = 0;
-        len = bnum << 8 | anum;
-        //printf("%d\n", len);
+        len       = bnum << 8 | anum;
+        // printf("%d\n", len);
 
-	// Trying to extract information
+        // Trying to extract information
         char *msg = (char *)malloc(len);
         count = 0;
         for (i = i + 2; i < len2 && count != len * 8; i += 2)
@@ -387,18 +361,17 @@ int main(int argc, char **argv)
         }
         printf("Decompression finished.\n");
 
-	// Save the extracted information into a file
+        // Save the extracted information into a file
         int fd;
         char template[] = "d-XXXXXX";
         fd = mkstemp(template);
         printf("Message has been written to %s\n", template);
         close(fd);
-        FILE* file2 = fopen(template,"wb");
-        fwrite(msg,1,len,file2);
+        FILE *file2 = fopen(template, "wb");
+        fwrite(msg, 1, len, file2);
         fclose(file2);
         free(msg);
         free(buffer);
-
     }
 
     return 0;
